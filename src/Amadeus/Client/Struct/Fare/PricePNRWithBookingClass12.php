@@ -33,10 +33,12 @@ use Amadeus\Client\Struct\Fare\PricePnr12\CityDetail;
 use Amadeus\Client\Struct\Fare\PricePnr12\CurrencyOverride;
 use Amadeus\Client\Struct\Fare\PricePnr12\DateOverride;
 use Amadeus\Client\Struct\Fare\PricePnr12\DiscountInformation;
+use Amadeus\Client\Struct\Fare\PricePnr12\FareBasisSegReference;
 use Amadeus\Client\Struct\Fare\PricePnr12\FrequentFlyerInformation;
 use Amadeus\Client\Struct\Fare\PricePnr12\OverrideInformation;
 use Amadeus\Client\Struct\Fare\PricePnr12\PenDisInformation;
 use Amadeus\Client\Struct\Fare\PricePnr12\PricingFareBase;
+use Amadeus\Client\Struct\Fare\PricePnr12\RefDetails;
 use Amadeus\Client\Struct\Fare\PricePnr12\TaxDetails;
 use Amadeus\Client\Struct\Fare\PricePnr12\ValidatingCarrier;
 use Amadeus\Client\Struct\OptionNotSupportedException;
@@ -122,11 +124,13 @@ class PricePNRWithBookingClass12 extends BaseWsMessage
      */
     public function __construct($options)
     {
+
         $this->overrideInformation = new OverrideInformation();
 
         if (!is_null($options)) {
             $this->loadPricingOptions($options);
         }
+
     }
 
     /**
@@ -304,6 +308,21 @@ class PricePNRWithBookingClass12 extends BaseWsMessage
         if (in_array($short, $options->overrideOptions) && !empty($options->pricingsFareBasis)) {
             foreach ($options->pricingsFareBasis as $pricingFareBasis) {
                 $this->pricingFareBase[] = new PricingFareBase($pricingFareBasis);
+            }
+            // XSD 12_4: one fareBasisSegReference with multiple refDetails (not multiple FareBasisSegReference).
+            foreach ($this->pricingFareBase as $pfb) {
+                if (empty($pfb->fareBasisSegReference)) {
+                    continue;
+                }
+                $refDetailsList = [];
+                foreach ($pfb->fareBasisSegReference as $segRef) {
+                    $refDetailsList[] = $segRef->refDetails;
+                }
+                $singleSegRef = new FareBasisSegReference(1, RefDetails::QUAL_SEGMENT_REFERENCE);
+                $singleSegRef->setRefDetailsList($refDetailsList);
+                unset($singleSegRef->refDetails);
+                // Single object; encoder iterates it (getIterator) and gets RefDetails so multiple <refDetails> are emitted.
+                $pfb->fareBasisSegReference = $singleSegRef;
             }
         }
     }

@@ -25,15 +25,29 @@ namespace Amadeus\Client\Struct\Fare\PricePnr12;
 /**
  * FareBasisSegReference
  *
+ * XSD 12_4: one fareBasisSegReference contains multiple refDetails (sequence).
+ * PHP SoapClient reads the "refDetails" property by name; if it's an array it
+ * tries to encode the array as one refDetails (no refQualifier). So we store
+ * multiple refDetails in a private list and expose them only via getIterator(),
+ * and remove the public refDetails so the encoder iterates this object and gets
+ * RefDetails instances.
+ *
  * @package Amadeus\Client\Struct\Fare\PricePnr12
  * @author dieter <dermikagh@gmail.com>
  */
-class FareBasisSegReference
+class FareBasisSegReference implements \IteratorAggregate
 {
     /**
      * @var RefDetails
      */
     public $refDetails;
+
+    /**
+     * Multiple refDetails for XSD "sequence of refDetails"; not exposed as property.
+     *
+     * @var RefDetails[]
+     */
+    private $refDetailsList = [];
 
     /**
      * FareBasisSegReference constructor.
@@ -44,5 +58,26 @@ class FareBasisSegReference
     public function __construct($segmentNr, $qualifier)
     {
         $this->refDetails = new RefDetails($segmentNr, $qualifier);
+    }
+
+    /**
+     * Set multiple refDetails for SOAP; caller must then unset($obj->refDetails) so encoder iterates this.
+     *
+     * @param RefDetails[] $list
+     */
+    public function setRefDetailsList(array $list)
+    {
+        $this->refDetailsList = $list;
+    }
+
+    /**
+     * SoapClient iterates this when encoding "sequence of refDetails"; yield RefDetails.
+     *
+     * @return \ArrayIterator
+     */
+    public function getIterator(): \ArrayIterator
+    {
+        $list = !empty($this->refDetailsList) ? $this->refDetailsList : [$this->refDetails];
+        return new \ArrayIterator($list);
     }
 }

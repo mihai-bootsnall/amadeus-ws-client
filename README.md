@@ -1,3 +1,14 @@
+## Amadeus fare-basis pricing (Fare_PricePNRWithBookingClass 12)
+
+This project uses a patched [amadeus-ws-client](https://github.com/amabnl/amadeus-ws-client) fork so that **fare basis + segment references** encode correctly for Amadeus WSDL 12_4.
+
+**Issue:** The upstream library builds one `FareBasisSegReference` per segment; the XSD expects **one** `fareBasisSegReference` with **multiple** `refDetails`. PHP’s SOAP encoder then raised: *"object has no 'refQualifier' property"*.
+
+**Patch (in the fork):** Reshape in `PricePNRWithBookingClass12::loadFareBasis()` so each `PricingFareBase` has a single `FareBasisSegReference` whose refs are exposed via `IteratorAggregate`; `FareBasisSegReference` gains `setRefDetailsList()` and `getIterator()` so the encoder emits multiple `<refDetails>`.
+
+See the fork repo for the exact diff.
+
+
 # amadeus-ws-client: PHP client for the Amadeus GDS SOAP Web Service interface
 
 [![Latest Stable Version](https://poser.pugx.org/amabnl/amadeus-ws-client/v/stable)](https://packagist.org/packages/amabnl/amadeus-ws-client) [![Code Coverage](https://scrutinizer-ci.com/g/amabnl/amadeus-ws-client/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/amabnl/amadeus-ws-client/?branch=master) [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/amabnl/amadeus-ws-client/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/amabnl/amadeus-ws-client/?branch=master) [![Style Status - PSR-2](https://styleci.io/repos/49078536/shield?branch=master)](https://styleci.io/repos/49078536)
